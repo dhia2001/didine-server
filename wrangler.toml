@@ -1,4 +1,4 @@
-name = "didine-fighter"
+name = "didine-online"
 main = "worker.js"
 compatibility_date = "2025-01-01"
 
