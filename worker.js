@@ -1,5 +1,7 @@
 // Didine Fighter - سيرفر أونلاين 1v1 على Cloudflare Workers + Durable Objects
-// البروتوكول مطابق لكود اللعبة: hello / start / c / i / s / rm / left / p
+// البروتوكول: hello / start / c / i / s / rm / e (رسالة سريعة) / cfg (إعدادات الغرفة) / left / p→q (قياس الاتصال)
+const RELAY = new Set(["c", "i", "s", "rm", "e", "cfg"]);
+
 export class Room {
   constructor(state) { this.state = state; }
 
@@ -29,10 +31,15 @@ export class Room {
   }
 
   webSocketMessage(ws, data) {
+    if (typeof data !== "string" || data.length > 2048) return;
     let m;
     try { m = JSON.parse(data); } catch { return; }
-    if (m.t === "p") return; // ping
-    if (!["c", "i", "s", "rm"].includes(m.t)) return;
+    if (!m || typeof m !== "object") return;
+    if (m.t === "p") { // ping: رد فوري لقياس زمن الاتصال
+      try { ws.send(JSON.stringify({ t: "q", ts: typeof m.ts === "number" ? m.ts : 0 })); } catch {}
+      return;
+    }
+    if (!RELAY.has(m.t)) return;
     for (const s of this.state.getWebSockets())
       if (s !== ws) { try { s.send(data); } catch {} }
   }
